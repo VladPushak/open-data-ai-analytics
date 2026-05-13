@@ -1,0 +1,53 @@
+﻿name: CI for School Analytics
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  run-modules:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [data_load, eda, data_research, visualization]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas matplotlib seaborn
+
+      - name: Prepare Workspace
+        run: |
+          mkdir -p data/raw
+          mkdir -p artifacts/${{ matrix.module }}
+          # Створюємо фейковий датасет, щоб скрипти не падали через відсутність файлу
+          echo "область,назва,тип,телефон" > data/raw/Institutions.csv
+          echo "Київська,Школа 1,Державна,044-111-22-33" >> data/raw/Institutions.csv
+
+      - name: Run Module
+        run: |
+          case "${{ matrix.module }}" in
+            "data_load") python src/data_load.py > artifacts/data_load/log.txt 2>&1 ;;
+            "eda") python src/eda.py > artifacts/eda/log.txt 2>&1 ;;
+            "data_research") python src/data_research.py > artifacts/data_research/log.txt 2>&1 ;;
+            "visualization") python src/visualization.py > artifacts/visualization/log.txt 2>&1 ;;
+          esac
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.module }}
+          path: artifacts/${{ matrix.module }}

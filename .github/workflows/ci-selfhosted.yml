@@ -1,0 +1,23 @@
+﻿name: Local Self-Hosted Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-on-my-pc:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run local test
+        run: |
+          echo "Testing from my local machine" > test_result.txt
+          hostname >> test_result.txt
+          date >> test_result.txt
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-pc-info
+          path: test_result.txt

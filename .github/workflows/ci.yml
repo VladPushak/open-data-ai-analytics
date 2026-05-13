@@ -1,0 +1,63 @@
+﻿name: CI for School Analytics
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Оберіть модуль для запуску"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - data_load
+          - eda
+          - data_research
+          - visualization
+
+jobs:
+  run-modules:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [data_load, eda, data_research, visualization]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts/${{ matrix.module }}
+
+      - name: Run Module
+        run: |
+          if [ "${{ matrix.module }}" == "data_load" ]; then
+            python src/data_load.py > artifacts/data_load/log.txt 2>&1
+          elif [ "${{ matrix.module }}" == "eda" ]; then
+            python src/eda.py > artifacts/eda/log.txt 2>&1
+          elif [ "${{ matrix.module }}" == "data_research" ]; then
+            python src/data_research.py > artifacts/data_research/log.txt 2>&1
+          elif [ "${{ matrix.module }}" == "visualization" ]; then
+            python src/visualization.py > artifacts/visualization/log.txt 2>&1
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.module }}
+          path: artifacts/${{ matrix.module }}
